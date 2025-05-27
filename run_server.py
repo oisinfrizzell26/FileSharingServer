@@ -9,6 +9,6 @@ if __name__ == '__main__':
     app.run(
         debug=False,
         host='0.0.0.0',  # Listen on all interfaces
-        port=3003,       # Changed from 5000 to avoid AirPlay conflict
+        port=3333,       # Changed from 5000 to avoid AirPlay conflict
         threaded=True    # Handle multiple requests
     ) 
