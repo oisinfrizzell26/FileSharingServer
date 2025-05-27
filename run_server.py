@@ -9,6 +9,6 @@ if __name__ == '__main__':
     app.run(
         debug=False,
         host='0.0.0.0',  # Listen on all interfaces
-        port=443,        # HTTPS port (requires sudo/admin privileges)
+        port=3333,       # Changed back to 3333
         threaded=True    # Handle multiple requests
     ) 
