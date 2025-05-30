@@ -45,3 +45,11 @@ class OneTimeKeys(db.Model):
     consumed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     consumed_at = db.Column(db.DateTime)
 
+class Nonce(db.Model):
+    __tablename__ = 'nonces'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    nonce_value = db.Column(db.String, unique=True, nullable=False) # The actual nonce string
+    issued_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False, nullable=False)
