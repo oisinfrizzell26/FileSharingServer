@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from urllib import request
+
 
 import requests
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, g
 from Database.models import db, PreKeyBundle, User, OneTimeKeys, Nonce
 
 app = Flask(__name__)
