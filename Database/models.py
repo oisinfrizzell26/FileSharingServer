@@ -32,7 +32,7 @@ class PreKeyBundle(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     public_key = db.Column(db.String, nullable=False)
     signature = db.Column(db.String, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_revoked = db.Column(db.Boolean, default=False)
 
