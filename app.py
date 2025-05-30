@@ -51,7 +51,7 @@ def register():
     try:
         new_user = User(
             username=username,
-            identity_Public_Key=identity_Public_Key
+            public_key=identity_Public_Key
         )
         db.session.add(new_user)
         db.session.flush()
