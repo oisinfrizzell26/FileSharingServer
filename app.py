@@ -82,9 +82,9 @@ def register():
         print('Error during user Registration: ', e)
         return jsonify({"status": "error", "message": "Error during user Registration"}), 500
 
-@app.route('/auth/challenge?username={username}', methods=['GET'])
+@app.route('/auth/challenge', methods=['GET'])
 def send_Challenge():
-    username = requests.args.get('username')
+    username = request.args.get('username')
     if not username:
         return jsonify({"status": "error", "message": "Missing username in query parameters"}), 400
 
