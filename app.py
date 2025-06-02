@@ -115,7 +115,7 @@ def login():
             return jsonify({"status": "error", "message": "User not found"}), 404
 
         identity_Public_Key = user.public_key
-        issued_nonce = Nonce.query.filter.by(
+        issued_nonce = Nonce.query.filter_by(
             user_id=user.id,
             nonce_value=received_nonce
         ).first()
