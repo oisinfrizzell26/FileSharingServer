@@ -92,9 +92,28 @@ def send_Challenge():
         return jsonify({"status": "error", "message": "User not found"}), 404
 
     import secrets
-    nonce = secrets.token_hex(16)
+    nonce_value = secrets.token_hex(16)
+    try:
+        # Delete any existing active nonces for this user (optional, but good for cleanup)
+        Nonce.query.filter_by(user_id=user.id, is_used=False).delete()
+        db.session.commit()
 
-    return jsonify({"status": "success", "message": "Challenge sent successfully", "nonce": nonce})
+        # Create and save the new nonce
+        new_nonce = Nonce(
+            user_id=user.id,
+            nonce_value=nonce_value,
+            is_used=False,
+            expires_at=datetime.utcnow() + timedelta(minutes=5)  # Nonce valid for 5 minutes
+        )
+        db.session.add(new_nonce)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error saving nonce for user {username}: {e}")
+        return jsonify({"status": "error", "message": "Failed to generate challenge"}), 500
+        # --- END ADDITION ---
+
+    return jsonify({"status": "success", "message": "Challenge sent successfully", "nonce": nonce_value})
 
 
 @app.route('/auth/login', methods=['POST'])
