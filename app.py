@@ -155,7 +155,7 @@ def login():
 
         is_valid_signature = verify_signature(
             public_key_b64=identity_Public_Key,
-            messsage_b64=received_nonce,
+            message_b64=received_nonce,
             signature_b64=received_signature,
             algorithm='ed25519'
         )
