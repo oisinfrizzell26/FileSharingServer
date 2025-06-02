@@ -119,6 +119,9 @@ def send_Challenge():
 @app.route('/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
+    app.logger.debug(f"Received JSON data: {data}")  # Changed to app.logger.debug
+    app.logger.debug(f"Type of received_nonce: {type(data.get('nonce'))}, value: '{data.get('nonce')}'")  # Changed
+    app.logger.debug( f"Type of received_signature: {type(data.get('signature'))}, value: '{data.get('signature')}'")  # Changed
     required_fields = ['username', 'nonce', 'signature']
     for field in required_fields:
         if field not in data:
