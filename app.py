@@ -1,15 +1,37 @@
 from datetime import datetime, timedelta
 
 from flask import Flask, render_template, jsonify, request, g
+from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
 from Database.models import db, PreKeyBundle, User, OneTimeKeys, Nonce
 from utils.crypto import verify_signature
 
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leftovers.db'
+app.config['JWT_SECRET_KEY'] = 'super-secret'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=45)
+
+jwt = JWTManager(app)
 db.init_app(app)
 with app.app_context():
     db.create_all()
+
+@jwt.unauthorized_loader
+def unauthorized_response(callback):
+    return jsonify({"status": "error", "message": "Missing or invalid token"}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_response(callback):
+    return jsonify({"status": "error", "message": "Signature verification failed"}), 403 # Forbidden
+
+@jwt.expired_token_loader
+def expired_token_response(callback):
+    return jsonify({"status": "error", "message": "Token has expired"}), 401
+
+@jwt.revoked_token_loader
+def revoked_token_response(callback):
+    return jsonify({"status": "error", "message": "Token has been revoked"}), 401
+
 
 
 @app.route("/hello", methods=['POST'])
@@ -171,13 +193,13 @@ def login():
         db.session.add(issued_nonce)  # Persist the change
         db.session.commit()
 
-        #session_token = secrets.token_urlsafe(32)
+        access_token = create_access_token(identity=user.id)
 
         app.logger.info(f"User '{username}' logged in successfully.")
         return jsonify({
             "status": "success",
             "message": "Login successful!",
-            #"token": session_token,
+            "access_token": access_token,
             "username": user.username  # Confirm username
         }), 200
 
