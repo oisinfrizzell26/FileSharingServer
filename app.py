@@ -231,7 +231,6 @@ def get_pre_keys():
         return jsonify({"status": "error", "message": "User not found"}), 404
 
     try:
-
         public_key = User.query.filter_by(username=username).first().public_key
         user_id = User.query.filter_by(username=username).first().id
         public_pre_key = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().public_key
@@ -239,7 +238,16 @@ def get_pre_keys():
 
 
 
-    return jsonify({"status": "success", "message": "Pre Key Bundle Sent Successfully", "Public Key": public_key, "Public Pre Key": public_pre_key, "Pre Key Signature": pre_key_signature })
+
+        return jsonify({"status": "success", "message": "Pre Key Bundle Sent Successfully", "Public Key": public_key,
+                "Public Pre Key": public_pre_key, "Pre Key Signature": pre_key_signature})
+
+    except Exception as e:
+        # Rollback the session in case of any database-related errors within the try block
+        db.session.rollback()
+        app.logger.error(f"Error during pre key retrieval for user {username}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Error during pre key retrieval"}), 500
+
 
 
 if __name__ == '__main__':
