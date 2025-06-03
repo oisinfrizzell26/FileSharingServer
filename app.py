@@ -2,9 +2,11 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, jsonify, request, g
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
-from Database.models import db, PreKeyBundle, User, OneTimeKeys, Nonce
+from Database.models import db, PreKeyBundle, User, OneTimeKeys, Nonce, Files
 from utils.crypto import verify_signature
 from validation import UsernameValidator
+from file_service import FileService
+import os
 
 app = Flask(__name__)
 
@@ -19,6 +21,10 @@ print(f"Current server time (from inside app): {datetime.now(timezone.utc).isofo
 
 jwt = JWTManager(app)
 db.init_app(app)
+
+file_service = FileService()
+file_service.init_app(app)
+
 with app.app_context():
     db.create_all()
 
@@ -265,7 +271,62 @@ def get_pre_keys():
         app.logger.error(f"Error during pre key retrieval for user {username}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Error during pre key retrieval"}), 500
 
+@app.route('/upload_data/', methods=['POST'])
+@jwt_required()
+def upload_encrypted_file():
+    current_user_id_str = get_jwt_identity()
+    try:
+        owner_id = int(current_user_id_str) # Assuming user ID in token is a string representation of an int
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid user ID format in token"}), 400
 
+    if 'encrypted_file' not in request.files:
+        return jsonify({"status": "error", "message": "Missing encrypted_file part in request"}), 400
+    
+    client_file_uuid = request.form.get('file_uuid')
+    if not client_file_uuid:
+        return jsonify({"status": "error", "message": "Missing file_uuid in form data"}), 400
+
+    uploaded_file = request.files['encrypted_file']
+
+    if uploaded_file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+
+    try:
+        encrypted_data = uploaded_file.read()
+        if not encrypted_data:
+            return jsonify({"status": "error", "message": "Uploaded file is empty"}), 400
+
+        # Use the global file_service instance initialized earlier
+        file_record = file_service.store_file(
+            file_uuid=client_file_uuid, 
+            encrypted_data=encrypted_data, 
+            owner_id=owner_id
+        )
+        
+        return jsonify({
+            "status": "success", 
+            "message": "File uploaded successfully", 
+            "file_id_in_db": file_record.id, # The auto-incremented ID from Files table
+            "client_uuid": file_record.uuid, 
+            "disk_path": file_record.disk_file_path
+        }), 201
+
+    except FileNotFoundError as e: # Catch specific errors from FileService/FileStorageHandler if defined
+        app.logger.error(f"File storage error during upload: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 404
+    # You might want to catch other specific exceptions from your file storage handler, e.g., FileSizeExceededError
+    # from files import FileSizeExceededError, FileStorageError (if these are defined and raised)
+    # except FileSizeExceededError as e:
+    #     return jsonify({"status": "error", "message": str(e)}), 413 # Payload Too Large
+    # except FileStorageError as e:
+    #     app.logger.error(f"File storage error during upload: {e}")
+    #     return jsonify({"status": "error", "message": "Could not store file due to storage error"}), 500
+    except Exception as e:
+        # Log the full error for debugging
+        app.logger.error(f"Unexpected error during file upload: {e}", exc_info=True)
+        # Provide a generic error message to the client
+        return jsonify({"status": "error", "message": "An unexpected error occurred during file upload"}), 500
 
 if __name__ == '__main__':
     # For production server deployment

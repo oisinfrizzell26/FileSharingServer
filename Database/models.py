@@ -10,8 +10,9 @@ class User(db.Model):
 class Files(db.Model):
     __tablename__ = 'files'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    uuid = db.Column(db.String, nullable=False)
+    uuid = db.Column(db.String, nullable=False, index=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    disk_file_path = db.Column(db.String, nullable=False, unique=True)
     created_at = db.Column(db.DateTime, nullable=False)
 
 class Messages(db.Model):
