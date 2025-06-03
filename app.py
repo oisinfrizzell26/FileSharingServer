@@ -14,6 +14,7 @@ app.config['JWT_ALGORITHM'] = 'HS256'
 app.config['JWT_DECODE_LEEWAY'] = timedelta(seconds=30)
 
 print(f"DEBUG: Flask app loaded JWT_SECRET_KEY as: '{app.config['JWT_SECRET_KEY']}'")
+print(f"Current server time (from inside app): {datetime.utcnow().isoformat()}Z")
 
 jwt = JWTManager(app)
 db.init_app(app)
