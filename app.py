@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, jsonify, request, g
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
-from Database.models import db, PreKeyBundle, User, OneTimeKeys, Nonce, Files
+from Database.models import db, PreKeyBundle, User, Nonce, Files
 from utils.crypto import verify_signature
 from validation import UsernameValidator
 from file_service import FileService
@@ -61,8 +61,7 @@ def register():
         'username',
         'identityPublicKey',
         'signedPreKeyPublicKey',
-        'signedPreKeySignature',
-        'oneTimeKeys'
+        'signedPreKeySignature'
     ]
     for field in required_fields:
         if field not in data:
@@ -76,13 +75,6 @@ def register():
     identity_Public_Key = data['identityPublicKey']
     signed_Pre_Key_Public_Key = data['signedPreKeyPublicKey']
     signed_Pre_Key_Signature = data['signedPreKeySignature']
-    one_Time_Keys_list = data['oneTimeKeys']
-
-    # Checking that the oneTimeKeys are an array of strings
-    if not isinstance(one_Time_Keys_list, list):
-        return jsonify({"status": "error", "message": "oneTimeKeys must be an array"}), 400
-    if not all(isinstance(k, str) for k in one_Time_Keys_list):
-        return jsonify({"status": "error", "message": "All oneTimeKeys must be strings"}), 400
 
     if User.query.filter_by(username=username).first():
         return jsonify({"status": "error", "message": "Username already exists"}), 400
@@ -102,14 +94,6 @@ def register():
             is_revoked=False,
         )
         db.session.add(new_signed_pre_key)
-
-        for otk_public_key in one_Time_Keys_list:
-            new_one_time_key = OneTimeKeys(
-                user_id=new_user.id,
-                public_key=otk_public_key,
-                is_used=False
-            )
-            db.session.add(new_one_time_key)
 
         db.session.commit()
 

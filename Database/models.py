@@ -37,15 +37,6 @@ class PreKeyBundle(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_revoked = db.Column(db.Boolean, default=False)
 
-class OneTimeKeys(db.Model):
-    __tablename__ = 'one_time_keys'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    public_key = db.Column(db.String, nullable=False)
-    is_used = db.Column(db.Boolean, default=False)
-    consumed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    consumed_at = db.Column(db.DateTime)
-
 class Nonce(db.Model):
     __tablename__ = 'nonces'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
