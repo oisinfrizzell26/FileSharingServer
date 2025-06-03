@@ -232,10 +232,10 @@ def get_pre_keys():
 
     try:
 
-    public_key = User.query.filter_by(username=username).first().public_key
-    user_id = User.query.filter_by(username=username).first().id
-    public_pre_key = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().public_key
-    pre_key_signature = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().signature
+        public_key = User.query.filter_by(username=username).first().public_key
+        user_id = User.query.filter_by(username=username).first().id
+        public_pre_key = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().public_key
+        pre_key_signature = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().signature
 
 
 
