@@ -11,7 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leftovers.db'
 app.config['JWT_SECRET_KEY'] = '82974171858986152797271650255250'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=2)
 app.config['JWT_ALGORITHM'] = 'HS256'
-app.config['JWT_DECODE_LEEWAY'] = timedelta(minutes=5)
+app.config['JWT_LEEWAY'] = timedelta(minutes=5)
 
 print(f"DEBUG: Flask app loaded JWT_SECRET_KEY as: '{app.config['JWT_SECRET_KEY']}'")
 print(f"Current server time (from inside app): {datetime.utcnow().isoformat()}Z")
