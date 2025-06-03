@@ -137,7 +137,7 @@ def send_Challenge():
             user_id=user.id,
             nonce_value=nonce_value,
             is_used=False,
-            expires_at=datetime.utcnow() + timedelta(minutes=5)  # Nonce valid for 5 minutes
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=5)  # Nonce valid for 5 minutes
         )
         db.session.add(new_nonce)
         db.session.commit()
