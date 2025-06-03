@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, jsonify, request, g
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
@@ -15,7 +15,7 @@ app.config['JWT_ALGORITHM'] = 'HS256'
 app.config['JWT_LEEWAY'] = timedelta(minutes=5)
 
 print(f"DEBUG: Flask app loaded JWT_SECRET_KEY as: '{app.config['JWT_SECRET_KEY']}'")
-print(f"Current server time (from inside app): {datetime.utcnow().isoformat()}Z")
+print(f"Current server time (from inside app): {datetime.now(timezone.utc).isoformat()}")
 
 jwt = JWTManager(app)
 db.init_app(app)
@@ -26,8 +26,14 @@ with app.app_context():
 def unauthorized_response(callback):
     return jsonify({"status": "error", "message": "Missing or invalid token"}), 401
 
+@jwt.invalid_token_loader
+def invalid_token_response(error_string):
+    app.logger.warning(f"JWT invalid: {error_string}. Token: {request.headers.get('Authorization')}")
+    return jsonify({"status": "error", "message": "Signature verification failed (detailed)"}), 403
+
 @jwt.expired_token_loader
-def expired_token_response(callback):
+def expired_token_response(jwt_header, jwt_payload):
+    app.logger.info(f"JWT expired. Header: {jwt_header}, Payload: {jwt_payload}. Token: {request.headers.get('Authorization')}")
     return jsonify({"status": "error", "message": "Token has expired"}), 401
 
 @jwt.revoked_token_loader
@@ -178,7 +184,7 @@ def login():
             # Nonce has already been used (replay attempt)
             return jsonify({"status": "error", "message": "Nonce already used"}), 401
 
-        if issued_nonce.expires_at < datetime.utcnow():
+        if issued_nonce.expires_at < datetime.now(timezone.utc):
             # Nonce has expired
             db.session.delete(issued_nonce)  # Clean up expired nonce
             db.session.commit()
@@ -199,7 +205,7 @@ def login():
         db.session.add(issued_nonce)  # Persist the change
         db.session.commit()
 
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
 
         app.logger.info(f"User '{username}' logged in successfully.")
         return jsonify({
