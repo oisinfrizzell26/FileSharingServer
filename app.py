@@ -207,6 +207,39 @@ def login():
         db.session.rollback()
         app.logger.error(f"An unexpected error occurred during login for '{username}': {e}", exc_info=True)
         return jsonify({"status": "error", "message": "An internal server error occurred"}), 500
+@app.route('/protected', methods=['GET'])
+@jwt_required() # This decorator protects the route
+def protected_route():
+    current_user_id = get_jwt_identity() # Get the identity from the JWT
+    user = User.query.get(current_user_id)
+    if not user:
+        return jsonify({"status": "error", "message": "User not found from token"}), 404
+    return jsonify({"status": "success", "message": f"Hello, {user.username}! You have access to protected data."}), 200
+
+
+@app.route('/users/', methods=['GET'])
+@jwt_required()
+def get_pre_keys():
+    current_user_id = get_jwt_identity()
+    app.logger.debug(f"Authenticated user ID: {current_user_id}")
+    username = request.args.get('username')
+    if not username:
+        return jsonify({"status": "error", "message": "Missing username in query parameters"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+
+    try:
+
+    public_key = User.query.filter_by(username=username).first().public_key
+    user_id = User.query.filter_by(username=username).first().id
+    public_pre_key = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().public_key
+    pre_key_signature = PreKeyBundle.query.filter_by(user_id=user_id, is_active=True).first().signature
+
+
+
+    return jsonify({"status": "success", "message": "Pre Key Bundle Sent Successfully", "Public Key": public_key, "Public Pre Key": public_pre_key, "Pre Key Signature": pre_key_signature })
 
 
 if __name__ == '__main__':
