@@ -26,10 +26,6 @@ with app.app_context():
 def unauthorized_response(callback):
     return jsonify({"status": "error", "message": "Missing or invalid token"}), 401
 
-@jwt.invalid_token_loader
-def invalid_token_response(callback):
-    return jsonify({"status": "error", "message": "Signature verification failed"}), 403 # Forbidden
-
 @jwt.expired_token_loader
 def expired_token_response(callback):
     return jsonify({"status": "error", "message": "Token has expired"}), 401
