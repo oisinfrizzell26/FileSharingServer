@@ -4,6 +4,7 @@ from flask import Flask, render_template, jsonify, request, g
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
 from Database.models import db, PreKeyBundle, User, OneTimeKeys, Nonce
 from utils.crypto import verify_signature
+from validation import UsernameValidator
 
 app = Flask(__name__)
 
@@ -55,6 +56,10 @@ def register():
             return jsonify({"status": "error", "message": f"Missing field: {field}"}), 400
 
     username = data['username']
+    # Username validation
+    is_valid, error_msg = UsernameValidator.validate(username)
+    if not is_valid:
+        return jsonify({"status": "error", "message": error_msg}), 400
     identity_Public_Key = data['identityPublicKey']
     signed_Pre_Key_Public_Key = data['signedPreKeyPublicKey']
     signed_Pre_Key_Signature = data['signedPreKeySignature']
