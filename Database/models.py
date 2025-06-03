@@ -17,13 +17,12 @@ class Files(db.Model):
 
 class Messages(db.Model):
     __tablename__ = 'messages'
-    receiver_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    receiver_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     ephemeral_key = db.Column(db.String, nullable=False)
     encrypted_file_metadata = db.Column(db.String, nullable=False)
     encrypted_metadata_nonce = db.Column(db.String, nullable=False)
-    encrypted_metadata_tag = db.Column(db.String, nullable=False)
-    otp_key = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
     isread = db.Column(db.Boolean, default=False)
 

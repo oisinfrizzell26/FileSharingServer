@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, jsonify, request, g
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
-from Database.models import db, PreKeyBundle, User, Nonce, Files
+from Database.models import db, PreKeyBundle, User, Nonce, Files, Messages
 from utils.crypto import verify_signature
 from validation import UsernameValidator
 from file_service import FileService
@@ -254,6 +254,68 @@ def get_pre_keys():
         db.session.rollback()
         app.logger.error(f"Error during pre key retrieval for user {username}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Error during pre key retrieval"}), 500
+
+@app.route('/files/share', methods=['POST'])
+@jwt_required()
+def share_file_metadata():
+    current_sender_id_str = get_jwt_identity()
+    try:
+        sender_id = int(current_sender_id_str)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid sender ID format in token"}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "Request must be JSON"}), 400
+
+    required_fields = [
+        'recipient_username',
+        'ephemeral_key',
+        'encrypted_file_metadata',
+        'encrypted_metadata_nonce'
+    ]
+
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"status": "error", "message": f"Missing field: {field}"}), 400
+
+    recipient_username = data['recipient_username']
+    ephemeral_key_b64 = data['ephemeral_key']
+    encrypted_metadata_b64 = data['encrypted_file_metadata']
+    encrypted_nonce_b64 = data['encrypted_metadata_nonce']
+
+    recipient = User.query.filter_by(username=recipient_username).first()
+    if not recipient:
+        return jsonify({"status": "error", "message": f"Recipient user '{recipient_username}' not found"}), 404
+    
+    recipient_id = recipient.id
+
+    if sender_id == recipient_id:
+        return jsonify({"status": "error", "message": "Sender and recipient cannot be the same user for a share message"}), 400
+
+    try:
+        new_message = Messages(
+            receiver_user_id=recipient_id,
+            owner_id=sender_id, # The authenticated user is the sender/owner of the message
+            ephemeral_key=ephemeral_key_b64,
+            encrypted_file_metadata=encrypted_metadata_b64,
+            encrypted_metadata_nonce=encrypted_nonce_b64,
+            created_at=datetime.now(timezone.utc),
+            isread=False
+        )
+        db.session.add(new_message)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success", 
+            "message": "File metadata shared successfully", 
+            "message_id": new_message.id
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error sharing file metadata: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "An unexpected error occurred while sharing file metadata"}), 500
 
 @app.route('/upload_data', methods=['POST'])
 @jwt_required()
