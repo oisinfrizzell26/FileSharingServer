@@ -271,7 +271,7 @@ def get_pre_keys():
         app.logger.error(f"Error during pre key retrieval for user {username}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Error during pre key retrieval"}), 500
 
-@app.route('/upload_data/', methods=['POST'])
+@app.route('/upload_data', methods=['POST'])
 @jwt_required()
 def upload_encrypted_file():
     current_user_id_str = get_jwt_identity()
