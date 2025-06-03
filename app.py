@@ -11,6 +11,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leftovers.db'
 app.config['JWT_SECRET_KEY'] = 'super-secret'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=45)
+app.config['JWT_ALGORITHM'] = 'HS256'
+app.config['JWT_DECODE_LEEWAY'] = timedelta(seconds=30)
 
 jwt = JWTManager(app)
 db.init_app(app)
