@@ -9,7 +9,7 @@ from validation import UsernameValidator
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leftovers.db'
-app.config['JWT_SECRET_KEY'] = '82974171858986152797271650255250'
+app.config['JWT_SECRET_KEY'] = '82974171858986152797271650255250123'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=2)
 app.config['JWT_ALGORITHM'] = 'HS256'
 app.config['JWT_LEEWAY'] = timedelta(minutes=5)
