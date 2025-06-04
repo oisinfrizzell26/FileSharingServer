@@ -397,8 +397,7 @@ def get_owned_file_uuids():
         return jsonify({"status": "error", "message": "Invalid user ID format in token"}), 400
 
     try:
-        # Query to get all UUIDs owned by the current user
-        # We use with_entities to select only the uuid column
+        # Query to get all uuids owned by user in files table
         owned_files_query = Files.query.with_entities(Files.uuid).filter_by(owner_id=user_id).all()
         
         # owned_files_query will be a list of tuples, e.g., [('uuid1',), ('uuid2',)]
@@ -410,6 +409,36 @@ def get_owned_file_uuids():
     except Exception as e:
         app.logger.error(f"Error retrieving owned file UUIDs for user {user_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "An unexpected error occurred while retrieving your file list"}), 500
+
+@app.route('/files/<string:file_uuid>', methods=['DELETE'])
+@jwt_required()
+def delete_file_route(file_uuid):
+    current_user_id_str = get_jwt_identity()
+    try:
+        user_id = int(current_user_id_str)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid user ID format in token"}), 400
+
+    app.logger.info(f"User {user_id} attempting to delete file with UUID: {file_uuid}")
+
+    try:
+       
+        file_service.delete_file(file_uuid=file_uuid, owner_id_check=user_id)
+        
+        return jsonify({"status": "success", "message": f"File {file_uuid} deleted successfully."}), 200
+
+    except FileNotFoundError as e:
+        app.logger.warning(f"File deletion failed for user {user_id}, UUID {file_uuid}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 404 # File not found
+    except PermissionError as e:
+        app.logger.warning(f"File deletion permission denied for user {user_id}, UUID {file_uuid}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 403 # Forbidden
+    except RuntimeError as e: # Catch specific RuntimeErrors from service layer for operational issues
+        app.logger.error(f"File deletion failed due to an operational error for user {user_id}, UUID {file_uuid}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error during file deletion for user {user_id}, UUID {file_uuid}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "An unexpected error occurred while deleting the file"}), 500
 
 @app.route('/upload_data', methods=['POST'])
 @jwt_required()
