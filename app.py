@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, timezone
 
-from flask import Flask, render_template, jsonify, request, g
+from flask import Flask, render_template, jsonify, request, g, send_file
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
 from Database.models import db, PreKeyBundle, User, Nonce, Files, Messages
 from utils.crypto import verify_signature
 from validation import UsernameValidator
 from file_service import FileService
 import os
+import io
 
 app = Flask(__name__)
 
@@ -336,11 +337,11 @@ def get_unread_messages():
             .all()
         
         messages_list = []
-        for msg, sender_username in unread_messages_with_sender: # Unpack the tuple
+        for msg, sender_username in unread_messages_with_sender: 
             messages_list.append({
                 "message_id": msg.id,
                 "sender_id": msg.owner_id,
-                "sender_username": sender_username, # Added sender's username
+                "sender_username": sender_username, 
                 "ephemeral_key": msg.ephemeral_key,
                 "encrypted_file_metadata": msg.encrypted_file_metadata,
                 "encrypted_metadata_nonce": msg.encrypted_metadata_nonce,
@@ -353,6 +354,38 @@ def get_unread_messages():
     except Exception as e:
         app.logger.error(f"Error retrieving unread messages for user {user_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "An unexpected error occurred while retrieving messages"}), 500
+
+@app.route('/files/<string:file_uuid>/download', methods=['GET'])
+@jwt_required()
+def download_encrypted_file(file_uuid):
+    current_user_id_str = get_jwt_identity()
+    try:
+        user_id = int(current_user_id_str) # We have the user_id, can be used for logging or future ACLs
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid user ID format in token"}), 400
+
+    app.logger.info(f"User {user_id} attempting to download file with UUID: {file_uuid}")
+
+    try:
+        # file_service is already initialized globally
+        encrypted_file_data_bytes = file_service.retrieve_file(file_uuid)
+        
+        # Send the bytes data as a downloadable file
+        # The client will know the original filename from the decrypted metadata
+        # We use the UUID as the suggested download filename for simplicity here.
+        return send_file(
+            io.BytesIO(encrypted_file_data_bytes), 
+            mimetype='application/octet-stream', # Generic binary type
+            as_attachment=True, 
+            download_name=f"{file_uuid}.dat" # Suggest a filename like a UUID with .dat extension
+        )
+
+    except FileNotFoundError:
+        app.logger.warning(f"File with UUID {file_uuid} not found for download attempt by user {user_id}.")
+        return jsonify({"status": "error", "message": "File not found or access denied"}), 404
+    except Exception as e:
+        app.logger.error(f"Error downloading file {file_uuid} for user {user_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "An unexpected error occurred while downloading the file"}), 500
 
 @app.route('/upload_data', methods=['POST'])
 @jwt_required()
