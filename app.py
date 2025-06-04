@@ -317,6 +317,43 @@ def share_file_metadata():
         app.logger.error(f"Error sharing file metadata: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "An unexpected error occurred while sharing file metadata"}), 500
 
+@app.route('/messages/inbox', methods=['GET'])
+@jwt_required()
+def get_unread_messages():
+    current_user_id_str = get_jwt_identity()
+    try:
+        user_id = int(current_user_id_str)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid user ID format in token"}), 400
+
+    try:
+        # Query to join Messages with User table to get sender's username
+        # We select the Message object and the User.username
+        unread_messages_with_sender = db.session.query(Messages, User.username)\
+            .join(User, Messages.owner_id == User.id)\
+            .filter(Messages.receiver_user_id == user_id, Messages.isread == False)\
+            .order_by(Messages.created_at.asc())\
+            .all()
+        
+        messages_list = []
+        for msg, sender_username in unread_messages_with_sender: # Unpack the tuple
+            messages_list.append({
+                "message_id": msg.id,
+                "sender_id": msg.owner_id,
+                "sender_username": sender_username, # Added sender's username
+                "ephemeral_key": msg.ephemeral_key,
+                "encrypted_file_metadata": msg.encrypted_file_metadata,
+                "encrypted_metadata_nonce": msg.encrypted_metadata_nonce,
+                "created_at": msg.created_at.isoformat() + 'Z',
+                "isread": msg.isread
+            })
+        
+        return jsonify({"status": "success", "messages": messages_list}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error retrieving unread messages for user {user_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "An unexpected error occurred while retrieving messages"}), 500
+
 @app.route('/upload_data', methods=['POST'])
 @jwt_required()
 def upload_encrypted_file():
