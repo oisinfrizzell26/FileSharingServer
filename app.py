@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leftovers.db'
 app.config['JWT_SECRET_KEY'] = '82974171858986152797271650255250123'
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=2)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_ALGORITHM'] = 'HS256'
 app.config['JWT_LEEWAY'] = timedelta(minutes=5)
 
@@ -175,9 +175,7 @@ def login():
             # Nonce has already been used (replay attempt)
             return jsonify({"status": "error", "message": "Nonce already used"}), 401
 
-        # issued_nonce.expires_at is likely a naive datetime from SQLite, representing UTC.
-        # datetime.now(timezone.utc) is an aware datetime.
-        # To compare, make datetime.now(timezone.utc) naive as well for an apples-to-apples comparison of UTC times.
+
         current_time_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
 
         if issued_nonce.expires_at < current_time_utc_naive:
