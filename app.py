@@ -387,6 +387,30 @@ def download_encrypted_file(file_uuid):
         app.logger.error(f"Error downloading file {file_uuid} for user {user_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "An unexpected error occurred while downloading the file"}), 500
 
+@app.route('/files/owned_uuids', methods=['GET'])
+@jwt_required()
+def get_owned_file_uuids():
+    current_user_id_str = get_jwt_identity()
+    try:
+        user_id = int(current_user_id_str)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid user ID format in token"}), 400
+
+    try:
+        # Query to get all UUIDs owned by the current user
+        # We use with_entities to select only the uuid column
+        owned_files_query = Files.query.with_entities(Files.uuid).filter_by(owner_id=user_id).all()
+        
+        # owned_files_query will be a list of tuples, e.g., [('uuid1',), ('uuid2',)]
+        # We need to extract the first element from each tuple to get a flat list of UUIDs.
+        owned_uuids_list = [item[0] for item in owned_files_query]
+        
+        return jsonify({"status": "success", "owned_file_uuids": owned_uuids_list}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error retrieving owned file UUIDs for user {user_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "An unexpected error occurred while retrieving your file list"}), 500
+
 @app.route('/upload_data', methods=['POST'])
 @jwt_required()
 def upload_encrypted_file():
